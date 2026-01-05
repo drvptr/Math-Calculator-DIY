@@ -4,9 +4,12 @@
 #include <ctype.h>
 
 typedef struct exersise{
-    int num1;
-    int num2;
-    char operator;
+    double num1;
+    char operator1;
+    double num2;
+    char operator2;
+    double num3;
+    char operator3; // I think i won't use it, but I need place for this unusable piece to be :(
 } EXERCISE;
 
 
@@ -18,60 +21,79 @@ char getC(const char *inputBuf, int *i)
     return c;
 }
 
-// Function that parse and solve equations from inputBuf.
-int solver(const char *inputBuf)
+// Reads numbers and write them where you want.
+double parser(double *num, const char *inputBuf, int *i, char *operator)
 {
-    EXERCISE ex;
-    ex.num1 = 0;
-    ex.num2 = 0;
-    int i = 0;
-    int res = 0;
-    char c;
-
-
-    c = getC(inputBuf, &i);
+    *num = 0;
+    char c = getC(inputBuf, i);
     if (isdigit(c)) {
         do {
-            ex.num1 = ex.num1 * 10 + (c - '0');
-            c = getC(inputBuf, &i);
+            *num = *num * 10 + (c - '0');
+            c = getC(inputBuf, i);
         } while (isdigit(c));
+        if(c == '.' || c == ','){
+            c = getC(inputBuf, i);
+            do {
+                double weight = 0.1;
+                *num = *num + (c - '0') * weight;
+                weight/=10;
+                c = getC(inputBuf, i);
+            } while (isdigit(c));
+        }
+        (*i)--;
     }
 
-    if (c == '+' || c == '-' || c == '*' || c == '/') {
-        ex.operator = c;
-        c = getC(inputBuf, &i);
+    if (c == '+' || c == '-' || c == '*' || c == '/' || c == '=' || c == '\0') {
+        *operator = c;
+        c = getC(inputBuf, i);
     } else {
-        printf("\nError: There is no operation '%c', there is only '+', '-', '*', '/' .", c);
+        printf("Error: Unknown symbol '%c'", c);
         return 1;
     }
+    return 0;
+}
+double solver(EXERCISE *ex){
+    double res;
 
-    if (isdigit(c)) {
-        do {
-            ex.num2 = ex.num2 * 10 + (c - '0');
-            c = getC(inputBuf, &i);
-        } while (isdigit(c));
-    }
+    if((ex->operator3 == '=' || ex->operator3 == '\0') && (ex->operator2 == '*' || ex->operator2 == '/')){
+        switch (ex->operator2) {
+        case '*': res = ex->num2 * ex->num3; break;
+        case '/': res = ex->num2 / ex->num3; break;
+        }
+    } else switch (ex->operator1) {
+        case '+': res = ex->num1 + ex->num2; break;
+        case '-': res = ex->num1 - ex->num2; break;
+        case '*': res = ex->num1 * ex->num2; break;
+        case '/': res = ex->num1 / ex->num2; break;
+        }
 
-    switch (ex.operator) {
-        case '+': res = ex.num1 + ex.num2; break;
-        case '-': res = ex.num1 - ex.num2; break;
-        case '*': res = ex.num1 * ex.num2; break;
-        case '/': res = ex.num1 / ex.num2; break;
-    }
+    return res;
+}
+// Function that parse and solve math exercises from inputBuf.
+int solve(const char *inputBuf)
+{
+    EXERCISE ex;
+    int i = 0;
+    
 
-    printf("First number: %d;\nSecond number: %d;\nOperation: %c;\nResult: %d;", ex.num1, ex.num2, ex.operator, res);
+    parser(&ex.num1, inputBuf, &i, &ex.operator1);
+    parser(&ex.num2, inputBuf, &i, &ex.operator2);
+    parser(&ex.num3, inputBuf, &i, &ex.operator3);
+
+    double res = solver(&ex);
+
+    printf("First number: %.2f;\nSecond number: %.2f;\nThird number: %.2f;\nResult: %.2f;", ex.num1, ex.num2, ex.num3, res);
     return 0;
 }
 
 int main(void)
 {
-    char *inputBuf = malloc(sizeof(char) * 64);
+    char inputBuf[64];
     puts("Enter your equation:");
-    fgets(inputBuf, 63, stdin);
+    fgets(inputBuf, 64, stdin);
     inputBuf[strcspn(inputBuf, "\n")] = '\0';
 
-    solver(inputBuf);
+    solve(inputBuf);
 
-    free(inputBuf);
     return 0;
 }
