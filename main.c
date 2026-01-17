@@ -1,8 +1,7 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include <ctype.h>
 
-#define NUM_SIZE    128
+#define NUM_AM    128
 
 typedef struct operator{
     unsigned char op : 6; //6bits enough for 64 numbers, if you use symbol that have bigger number in ASCII, just remove ": 6", and ": 2"
@@ -10,8 +9,8 @@ typedef struct operator{
 } OP;
 
 typedef struct tokens{
-    double nums[NUM_SIZE];
-    OP ops[NUM_SIZE -1];
+    double nums[NUM_AM];
+    OP ops[NUM_AM -1];
 } TOK;
 
 // gets char that isn't space(' ') and returns it
@@ -22,7 +21,8 @@ char getC(void)
     return c;
 }
 
-double solver(TOK *tokens, int *numAm) //solving the math example, and return result
+//solving the math example, and return result
+double solver(TOK *tokens, int *numAm)
 {
     TOK temp;
     double res, res_mul;
@@ -60,7 +60,7 @@ double solver(TOK *tokens, int *numAm) //solving the math example, and return re
 }
 
 // the function that parses elements, and gives it to solver func
-int parser(void)
+void parser(void)
 {
     int numIndx=0, opIndx=0;// numIndx - index that needed to add numbers into numbers array, opIndx is the same as numIndx, but for operators
     double num, weight;
@@ -75,7 +75,7 @@ int parser(void)
             num=0;
             do{
                 num = num*10+(c-'0');
-                c=getC();                
+                c=getC();
             }while(isdigit(c));
 
             if(c=='.'||c==','){// for real numbers
@@ -88,25 +88,40 @@ int parser(void)
                 }while(isdigit(c));
             }
             
-            tokens.nums[numIndx] = num;
+            if(tokens.ops[opIndx-1].op == '-'){// it's better, if example is "-150", solver will return -150, instead of 150
+                tokens.ops[opIndx-1].op = '+';
+                tokens.nums[numIndx] = -num;
+            } else
+                tokens.nums[numIndx] = num;
+            
             ++numIndx;
             ungetc(c, stdin);
-        } else if(c=='+'||c=='-'){
-            tokens.ops[opIndx].op = c;
-            tokens.ops[opIndx].pr = 0;
-            ++opIndx;
-        } else if(c=='*'||c=='/'||c=='%'){
-            tokens.ops[opIndx].op = c;
-            tokens.ops[opIndx].pr = 1;
-            ++opIndx;
-        } else printf("\nError: there is no symbol '%c';\n", c);
+        } else {
+            switch(c){
+                case '-': 
+                case '+':
+                    tokens.ops[opIndx].op = c;
+                    tokens.ops[opIndx].pr = 0;
+                    if(numIndx==0){ // if first symbol of example is operation, we make first digit equals 0, and moving to the next digit
+                        tokens.nums[0]=0;
+                        numIndx++;
+                    }
+                    ++opIndx;
+                    break;
+                case '/':
+                case '*':
+                    tokens.ops[opIndx].op = c;
+                    tokens.ops[opIndx].pr = 1;
+                    if(numIndx==0){
+                        tokens.nums[0]=0;
+                        numIndx++;
+                    }
+                    ++opIndx;                    break;
+                default: printf("Err: Unknon symbol '%c'", c); return;
+            }
+        }
     }while(c!='='&&c!='\n');
-
     printf("Your answer is %.2f", solver(&tokens, &numIndx));
-
-//    printf("%d\n%d\n%c", tokens.numbers[0], tokens.numbers[1], tokens.operators[0]);
-
-    return 0;
 }
 
 int main(void)
